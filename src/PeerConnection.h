@@ -1,10 +1,10 @@
 /*
- * File: c:\Users\tonyw\Desktop\New folder (2)\torrent_library\PeerConnection.h
- * Project: c:\Users\tonyw\Desktop\New folder (2)\torrent_library
+ * File: c:\Users\tonyw\Desktop\New folder (2)\src\PeerConnection.h
+ * Project: c:\Users\tonyw\Desktop\New folder (2)\src
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 1:44:31 
+ * Last Modified: Thu January 30th 2025 4:36:50 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -45,9 +45,12 @@ public:
 private:
     std::string peerAddress; //!> Peer IP and port.
     std::string infoHash;    //!> Info hash of the torrent (for handshake).
-    SOCKET socketFd;            //!> Socket descriptor for the peer connection.
+    SOCKET socketFd;         //!> Socket descriptor for the peer connection.
+    
 
-    void createSocket(); //!> Create a socket for the peer connection.
+    void createSocket();
+    void setSocketTimeout(int timeout);
+    //!> Create a socket for the peer connection.
     void closeSocket();  //!> Close the socket for the peer connection.
 };
 

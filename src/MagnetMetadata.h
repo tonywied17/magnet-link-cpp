@@ -1,15 +1,14 @@
 /*
  * File: c:\Users\tonyw\Desktop\New folder (2)\torrent_library\MagnetMetadata.h
- * Project: c:\Users\tonyw\Desktop\New folder (2)\torrent_library
+ * Project: c:\Users\tonyw\Desktop\New folder (2)\src
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 1:43:48 
+ * Last Modified: Thu January 30th 2025 4:08:57 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
  */
-
 #ifndef MAGNET_METADATA_H
 #define MAGNET_METADATA_H
 
@@ -21,12 +20,14 @@ class MagnetMetadata
 {
 public:
     /*!
-        \brief Creates a MagnetMetadata object with the given hash, trackers, and piece hashes.
+        \brief Creates a MagnetMetadata object with the given hash, trackers, piece hashes, and piece size.
         \param hash The SHA-1 hash of the torrent.
         \param trackers The list of tracker URLs.
         \param pieceHashes The list of piece hashes (one per piece).
+        \param pieceSize The size of each piece.
     */
-    MagnetMetadata(std::string hash, std::vector<std::string> trackers, std::vector<std::string> pieceHashes);
+    MagnetMetadata(std::string hash, std::vector<std::string> trackers,
+                   std::vector<std::string> pieceHashes, uint32_t pieceSize);
 
     /*!
         \brief Get the SHA-1 hash of the torrent.

@@ -1,7 +1,20 @@
+/*
+ * File: c:\Users\tonyw\Desktop\New folder (2)\src\MagnetParser.cpp
+ * Project: c:\Users\tonyw\Desktop\New folder (2)\src
+ * Created Date: Wednesday January 29th 2025
+ * Author: Tony Wiedman
+ * -----
+ * Last Modified: Thu January 30th 2025 4:09:07 
+ * Modified By: Tony Wiedman
+ * -----
+ * Copyright (c) 2025 MolexWorks
+ */
+
 #include "MagnetParser.h"
 #include <sstream>
 #include <stdexcept>
 #include <cstdint>
+#include <algorithm>
 
 /*!
     \brief Creates a MagnetParser object with the given magnet link.
@@ -18,6 +31,7 @@ MagnetMetadata MagnetParser::parse()
     std::string infoHash;
     std::vector<std::string> trackers;
     std::vector<std::string> pieceHashes;
+    uint32_t pieceSize = 0;
 
     if (magnetLink.find("magnet:?") != 0)
     {
@@ -49,12 +63,16 @@ MagnetMetadata MagnetParser::parse()
         {
             pieceHashes.push_back(value); //!> Extract piece hashes
         }
+        else if (key == "sz")
+        {
+            pieceSize = std::stoi(value); //!> Extract piece size
         }
+    }
 
     if (infoHash.empty())
     {
         throw std::runtime_error("Missing or invalid info hash in magnet link");
     }
 
-    return MagnetMetadata(infoHash, trackers, pieceHashes);
+    return MagnetMetadata(infoHash, trackers, pieceHashes, pieceSize);
 }

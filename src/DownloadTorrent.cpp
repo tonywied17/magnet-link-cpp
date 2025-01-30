@@ -1,3 +1,15 @@
+/*
+ * File: c:\Users\tonyw\Desktop\New folder (2)\src\DownloadTorrent.cpp
+ * Project: c:\Users\tonyw\Desktop\New folder (2)\src
+ * Created Date: Wednesday January 29th 2025
+ * Author: Tony Wiedman
+ * -----
+ * Last Modified: Thu January 30th 2025 4:05:15 
+ * Modified By: Tony Wiedman
+ * -----
+ * Copyright (c) 2025 MolexWorks
+ */
+
 #include "DownloadTorrent.h"
 #include <iostream>
 #include <filesystem>
@@ -48,30 +60,38 @@ void DownloadTorrent::createDownloadDirectory()
 */
 void DownloadTorrent::requestPieces()
 {
+    std::vector<std::thread> downloadThreads;
+
     for (uint32_t pieceIndex = 0; pieceIndex < metadata.getPieceHashes().size(); ++pieceIndex)
     {
-        for (const auto &peer : peers)
-        {
-            PeerConnection peerConnection(peer, metadata);
-            if (peerConnection.connectToPeer())
+        downloadThreads.push_back(std::thread([this, pieceIndex]()
+                                              {
+            for (const auto &peer : peers)
             {
-                peerConnection.performHandshake();
-
-                peerConnection.sendRequest(pieceIndex, 0, 16384);
-                std::vector<char> pieceData = peerConnection.receiveData();
-
-                if (verifyPiece(pieceIndex, pieceData))
+                PeerConnection peerConnection(peer, metadata);
+                if (peerConnection.connectToPeer())
                 {
-                    savePiece(pieceIndex, pieceData);
-                    updatePieceStatus(pieceIndex, true);
-                    break;
+                    peerConnection.performHandshake();
+                    peerConnection.sendRequest(pieceIndex, 0, 16384);
+                    std::vector<char> pieceData = peerConnection.receiveData();
+
+                    if (verifyPiece(pieceIndex, pieceData))
+                    {
+                        savePiece(pieceIndex, pieceData);
+                        updatePieceStatus(pieceIndex, true);
+                        return;
+                    }
+                    else
+                    {
+                        retryPieceDownload(pieceIndex);
+                    }
                 }
-                else
-                {
-                    retryPieceDownload(pieceIndex);
-                }
-            }
-        }
+            } }));
+    }
+
+    for (auto &t : downloadThreads)
+    {
+        t.join();
     }
 }
 

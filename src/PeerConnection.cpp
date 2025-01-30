@@ -1,8 +1,22 @@
+/*
+ * File: c:\Users\tonyw\Desktop\New folder (2)\src\PeerConnection.cpp
+ * Project: c:\Users\tonyw\Desktop\New folder (2)\src
+ * Created Date: Wednesday January 29th 2025
+ * Author: Tony Wiedman
+ * -----
+ * Last Modified: Thu January 30th 2025 4:38:56 
+ * Modified By: Tony Wiedman
+ * -----
+ * Copyright (c) 2025 MolexWorks
+ */
+
 #include "PeerConnection.h"
 #include <iostream>
 #include <stdexcept>
 #include <cstring>
 #include <vector>
+#include <chrono>
+#include <thread>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -10,9 +24,10 @@
 #else
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
 #endif
 
-/*! 
+/*!
     \brief Creates a PeerConnection object with the given peer address and metadata.
     \param peerAddress The IP and port of the peer.
     \param metadata The metadata of the torrent.
@@ -20,16 +35,16 @@
 PeerConnection::PeerConnection(const std::string &peerAddress, const MagnetMetadata &metadata)
     : peerAddress(peerAddress), infoHash(metadata.getInfoHash()), socketFd(INVALID_SOCKET) {}
 
-/*! 
-    \brief Destroys the PeerConnection object. 
+/*!
+    \brief Destroys the PeerConnection object.
 */
 PeerConnection::~PeerConnection()
 {
     closeSocket();
 }
 
-/*! 
-    \brief Initiates the connection to the peer. 
+/*!
+    \brief Creates and configures the socket.
 */
 void PeerConnection::createSocket()
 {
@@ -40,7 +55,7 @@ void PeerConnection::createSocket()
         throw std::runtime_error("Winsock initialization failed");
     }
 
-    socketFd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    socketFd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketFd == INVALID_SOCKET)
     {
         WSACleanup();
@@ -55,8 +70,27 @@ void PeerConnection::createSocket()
 #endif
 }
 
-/*! 
-    \brief Closes the socket connection. 
+/*!
+    \brief Sets a socket timeout for blocking operations.
+    \param timeout The timeout value in seconds.
+*/
+void PeerConnection::setSocketTimeout(int timeout)
+{
+    struct timeval tv;
+    tv.tv_sec = timeout;
+    tv.tv_usec = 0;
+
+#ifdef _WIN32
+    setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
+    setsockopt(socketFd, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(tv));
+#else
+    setsockopt(socketFd, SOL_SOCKET, SO_RCVBUF, &tv, sizeof(tv));
+    setsockopt(socketFd, SOL_SOCKET, SO_RCVBUF, &tv, sizeof(tv));
+#endif
+}
+
+/*!
+    \brief Closes the socket connection.
 */
 void PeerConnection::closeSocket()
 {
@@ -76,8 +110,9 @@ void PeerConnection::closeSocket()
 #endif
 }
 
-/*! 
-    \brief Initiates the connection to the peer. 
+/*!
+    \brief Initiates the connection to the peer.
+    \throws std::runtime_error if connection fails.
 */
 bool PeerConnection::connectToPeer()
 {
@@ -101,6 +136,8 @@ bool PeerConnection::connectToPeer()
         throw std::runtime_error("Invalid peer IP address");
     }
 
+    setSocketTimeout(10); // 10-second timeout for connection
+
 #ifdef _WIN32
     if (connect(socketFd, (struct sockaddr *)&peerAddr, sizeof(peerAddr)) == SOCKET_ERROR)
     {
@@ -118,8 +155,9 @@ bool PeerConnection::connectToPeer()
     return true;
 }
 
-/*! 
-    \brief Perform the torrent protocol handshake with the peer. 
+/*!
+    \brief Perform the torrent protocol handshake with the peer.
+    \throws std::runtime_error if handshake fails.
 */
 void PeerConnection::performHandshake()
 {
@@ -156,7 +194,7 @@ void PeerConnection::performHandshake()
     std::cout << "Handshake successful with peer!" << std::endl;
 }
 
-/*! 
+/*!
     \brief Request data (torrent pieces) from the peer.
     \param pieceIndex The index of the piece to request.
     \param blockOffset The offset of the block within the piece.
@@ -186,30 +224,46 @@ void PeerConnection::sendRequest(uint32_t pieceIndex, uint32_t blockOffset, uint
 #endif
 }
 
-/*! 
+/*!
     \brief Receive data from the peer (torrent pieces).
     \return A vector of received data.
 */
 std::vector<char> PeerConnection::receiveData()
 {
-    char buffer[16384]; //!> Buffer size ****can be adjusted
+    std::vector<char> data;
+    char buffer[16384];
     ssize_t bytesReceived;
 
+    while (true)
+    {
 #ifdef _WIN32
-    bytesReceived = recv(socketFd, buffer, sizeof(buffer), 0);
-    if (bytesReceived == SOCKET_ERROR)
-    {
-        throw std::runtime_error("Failed to receive data");
-    }
+        bytesReceived = recv(socketFd, buffer, sizeof(buffer), 0);
+        if (bytesReceived == SOCKET_ERROR)
+        {
+            throw std::runtime_error("Failed to receive data");
+        }
 #else
-    bytesReceived = recv(socketFd, buffer, sizeof(buffer), 0);
-    if (bytesReceived < 0)
-    {
-        throw std::runtime_error("Failed to receive data");
-    }
+        bytesReceived = recv(socketFd, buffer, sizeof(buffer), 0);
+        if (bytesReceived < 0)
+        {
+            throw std::runtime_error("Failed to receive data");
+        }
 #endif
 
-    std::vector<char> data(buffer, buffer + bytesReceived);
-    std::cout << "Received " << bytesReceived << " bytes from peer." << std::endl;
+        if (bytesReceived > 0)
+        {
+            data.insert(data.end(), buffer, buffer + bytesReceived);
+            if (bytesReceived < static_cast<ssize_t>(sizeof(buffer)))
+            {
+                break;
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    std::cout << "Received " << data.size() << " bytes of torrent data." << std::endl;
     return data;
 }

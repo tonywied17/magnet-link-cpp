@@ -1,3 +1,15 @@
+/*
+ * File: c:\Users\tonyw\Desktop\New folder (2)\src\DHTClient.cpp
+ * Project: c:\Users\tonyw\Desktop\New folder (2)\src
+ * Created Date: Wednesday January 29th 2025
+ * Author: Tony Wiedman
+ * -----
+ * Last Modified: Thu January 30th 2025 4:37:11 
+ * Modified By: Tony Wiedman
+ * -----
+ * Copyright (c) 2025 MolexWorks
+ */
+
 #include "DHTClient.h"
 #include "TorrentUtilities.h"
 #include <iostream>
@@ -61,7 +73,7 @@ int DHTClient::createSocket()
 }
 
 /*!
-    \brief Generates a random 20-byte node ID
+    \brief Generates a random 20-byte node ID.
     \return A 20-byte array containing the node ID.
 */
 std::array<uint8_t, 20> DHTClient::generateNodeID()
@@ -71,9 +83,9 @@ std::array<uint8_t, 20> DHTClient::generateNodeID()
     std::uniform_int_distribution<> dis(0, 255);
 
     std::array<uint8_t, 20> nodeID;
-    for (size_t i = 0; i < 20; ++i)
+    for (uint8_t &byte : nodeID)
     {
-        nodeID[i] = dis(gen);
+        byte = static_cast<uint8_t>(dis(gen));
     }
 
     return nodeID;
@@ -86,58 +98,122 @@ std::array<uint8_t, 20> DHTClient::generateNodeID()
 std::string DHTClient::buildGetPeersQuery()
 {
     std::array<uint8_t, 20> nodeID = generateNodeID();
+    std::string nodeIDStr;
 
-    std::stringstream nodeIDStream;
     for (auto byte : nodeID)
     {
-        nodeIDStream << std::setw(2) << std::setfill('0') << std::hex << (int)byte;
+        std::stringstream ss;
+        ss << std::hex << std::setw(2) << std::setfill('0') << (int)byte;
+        nodeIDStr += ss.str();
     }
-    std::string nodeIDStr = nodeIDStream.str(); //* to hex string
 
-    //* DHT messages- encode a "get_peers" request.
-    std::unordered_map<std::string, std::string> query;
-    query["t"] = "aa";        // transaction ID
-    query["y"] = "q";         // query type
-    query["q"] = "get_peers"; // query method
+    std::cout << "Node ID (Hex): " << nodeIDStr << std::endl;
 
     std::unordered_map<std::string, std::string> args;
     args["id"] = nodeIDStr;
-    args["info_hash"] = infoHash; //* Target torrent hash
+    args["info_hash"] = infoHash;
 
-    query["a"] = TorrentUtilities::encodeBencodedData(args);
-    return TorrentUtilities::encodeBencodedData(query);
+    std::unordered_map<std::string, std::string> query;
+    query["t"] = "aa";                                       //!> Transaction ID
+    query["y"] = "q";                                        //!> Query type
+    query["q"] = "get_peers";                                //!> Query method
+    query["a"] = TorrentUtilities::encodeBencodedData(args); //!> Encoded arguments
+
+    std::string fullQuery = TorrentUtilities::encodeBencodedData(query);
+
+    std::cout << "Full Query: " << fullQuery << std::endl;
+
+    return fullQuery;
 }
 
 /*!
-    \brief Get a list of peers for the torrent file.
+    \brief Get a list of peers for the torrent file from multiple bootstrap nodes.
     \return A vector of strings containing peer information.
 */
 std::vector<std::string> DHTClient::getPeers()
 {
-    std::vector<std::string> peers;
+    std::vector<std::string> allPeers;
+    std::vector<std::string> bootstrapNodes = {
+        "67.215.246.10",
+        "router.bittorrent.com",
+        "dht.transmissionbt.com"};
+
+    std::cout << "Starting to discover peers..." << std::endl;
+
+    std::string query = buildGetPeersQuery();
+
+    for (const auto &node : bootstrapNodes)
+    {
+        std::cout << "Attempting to fetch peers from node: " << node << std::endl;
+
+        try
+        {
+            std::vector<std::string> peers = getPeersFromNode(node, query);
+            std::cout << "Received " << peers.size() << " peers from node: " << node << std::endl;
+            allPeers.insert(allPeers.end(), peers.begin(), peers.end());
+        }
+        catch (const std::runtime_error &e)
+        {
+            std::cerr << "Error fetching peers from node " << node << ": " << e.what() << std::endl;
+        }
+    }
+
+    std::cout << "Total peers discovered: " << allPeers.size() << std::endl;
+
+    return allPeers;
+}
+
+/*!
+    \brief Get a list of peers from a specific DHT node.
+    \param node The DHT node address.
+    \param query The get_peers query to send to the node.
+    \return A vector of strings containing peer information.
+*/
+std::vector<std::string> DHTClient::getPeersFromNode(const std::string &node, const std::string &query)
+{
     int sock = createSocket();
 
-    struct sockaddr_in dhtNode;
+    struct sockaddr_in dhtNode{};
     dhtNode.sin_family = AF_INET;
     dhtNode.sin_port = htons(DHT_PORT);
 
-    if (inet_pton(AF_INET, "67.215.246.10", &dhtNode.sin_addr) <= 0)
-    { //! Public DHT bootstrap node
+    if (inet_pton(AF_INET, node.c_str(), &dhtNode.sin_addr) <= 0)
+    {
 #ifdef _WIN32
-        closesocket(sock);
+        if (closesocket(sock) != 0)
+        {
+            std::cerr << "Failed to close socket" << std::endl;
+        }
 #else
-        close(sock);
+        if (close(sock) < 0)
+        {
+            std::cerr << "Failed to close socket" << std::endl;
+        }
 #endif
-        throw std::runtime_error("Invalid DHT bootstrap node address");
+        throw std::runtime_error("Invalid DHT node address");
     }
 
-    std::string query = buildGetPeersQuery();
-    sendto(sock, query.c_str(), query.size(), 0, (struct sockaddr *)&dhtNode, sizeof(dhtNode));
+    if (sendto(sock, query.c_str(), query.size(), 0, (struct sockaddr *)&dhtNode, sizeof(dhtNode)) < 0)
+    {
+#ifdef _WIN32
+        if (closesocket(sock) != 0)
+        {
+            std::cerr << "Failed to close socket" << std::endl;
+        }
+#else
+        if (close(sock) < 0)
+        {
+            std::cerr << "Failed to close socket" << std::endl;
+        }
+#endif
+        throw std::runtime_error("Failed to send get_peers request");
+    }
 
     char buffer[BUFFER_SIZE];
     socklen_t addrLen = sizeof(dhtNode);
     int recvLen = recvfrom(sock, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&dhtNode, &addrLen);
 
+    std::vector<std::string> peers;
     if (recvLen > 0)
     {
         std::string response(buffer, recvLen);
@@ -145,9 +221,15 @@ std::vector<std::string> DHTClient::getPeers()
     }
 
 #ifdef _WIN32
-    closesocket(sock);
+    if (closesocket(sock) != 0)
+    {
+        std::cerr << "Failed to close socket" << std::endl;
+    }
 #else
-    close(sock);
+    if (close(sock) < 0)
+    {
+        std::cerr << "Failed to close socket" << std::endl;
+    }
 #endif
 
     return peers;
@@ -163,36 +245,39 @@ std::vector<std::string> DHTClient::parseResponse(const std::string &response)
     std::vector<std::string> peers;
 
     auto decoded = TorrentUtilities::decodeBencodedData(response);
-    if (decoded.find("r") != decoded.end())
+    if (decoded.find("r") == decoded.end())
     {
-        auto result = decoded["r"];
+        return peers;
+    }
 
-        if (result.find("values") != std::string::npos)
+    size_t index = 0;
+    auto result = TorrentUtilities::decodeBencodedData(decoded["r"], index);
+
+    if (result.find("values") != result.end())
+    {
+        auto peerList = TorrentUtilities::decodeBencodedList(result["values"], index);
+
+        for (const std::string &peerData : peerList)
         {
-            std::string peerData = decoded["values"];
-
-            if (peerData.size() % 6 != 0)
+            if (peerData.size() != 6)
             {
-                throw std::runtime_error("Invalid peer data length");
+                continue;
             }
 
-            for (size_t i = 0; i < peerData.size(); i += 6)
-            {
-                uint8_t ip1 = static_cast<uint8_t>(peerData[i]);
-                uint8_t ip2 = static_cast<uint8_t>(peerData[i + 1]);
-                uint8_t ip3 = static_cast<uint8_t>(peerData[i + 2]);
-                uint8_t ip4 = static_cast<uint8_t>(peerData[i + 3]);
-                uint16_t port = (static_cast<uint8_t>(peerData[i + 4]) << 8) | static_cast<uint8_t>(peerData[i + 5]);
+            uint8_t ip1 = static_cast<uint8_t>(peerData[0]);
+            uint8_t ip2 = static_cast<uint8_t>(peerData[1]);
+            uint8_t ip3 = static_cast<uint8_t>(peerData[2]);
+            uint8_t ip4 = static_cast<uint8_t>(peerData[3]);
+            uint16_t port = (static_cast<uint8_t>(peerData[4]) << 8) | static_cast<uint8_t>(peerData[5]);
 
-                std::ostringstream peerAddress;
-                peerAddress << static_cast<int>(ip1) << "."
-                            << static_cast<int>(ip2) << "."
-                            << static_cast<int>(ip3) << "."
-                            << static_cast<int>(ip4) << ":"
-                            << port;
+            std::ostringstream peerAddress;
+            peerAddress << static_cast<int>(ip1) << "."
+                        << static_cast<int>(ip2) << "."
+                        << static_cast<int>(ip3) << "."
+                        << static_cast<int>(ip4) << ":"
+                        << port;
 
-                peers.push_back(peerAddress.str());
-            }
+            peers.push_back(peerAddress.str());
         }
     }
 
