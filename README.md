@@ -1,5 +1,5 @@
 
-# Torrent Client
+# Magnet Link Torrent Client
 
 This is a basic torrent client written in C++ that parses magnet links, discovers peers via DHT, connects to them, and starts downloading torrents. It is designed as a learning project and provides a starting point for a custom torrent client.
 
@@ -26,7 +26,7 @@ This is a basic torrent client written in C++ that parses magnet links, discover
 ## Project Structure
 
 - `TorrentClientApp.cpp`: Main application logic.
-- `lib/`: Contains the library for parsing magnet links, DHT client, peer discovery, and torrent downloading.
+- `src/`: Contains the library for parsing magnet links, DHT client, peer discovery, and torrent downloading.
 
 ## Features
 
