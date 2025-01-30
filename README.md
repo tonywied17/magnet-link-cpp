@@ -33,3 +33,19 @@ This is a basic torrent client written in C++ that parses magnet links, discover
 - Parse Magnet Links
 - Discover Peers via DHT
 - Connect to peers and start downloading
+
+
+<!-- https://www.bittorrent.org/beps/bep_0005.html
+
+https://www.bittorrent.org/beps/bep_0003.html
+
+https://www.bittorrent.org/beps/bep_0010.html
+
+https://www.bittorrent.org/beps/bep_0009.html -->
+
+## References
+
+- [BEP 5: DHT Protocol](https://www.bittorrent.org/beps/bep_0005.html)
+- [BEP 3: The BitTorrent Protocol Specification](https://www.bittorrent.org/beps/bep_0003.html)
+- [BEP 10: Extension Protocol](https://www.bittorrent.org/beps/bep_0010.html)
+- [BEP 9: Extension for Peers to Send Metadata Files](https://www.bittorrent.org/beps/bep_0009.html)
