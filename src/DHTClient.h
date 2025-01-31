@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 8:19:27 
+ * Last Modified: Thu January 30th 2025 8:56:13 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -18,6 +18,7 @@
 #include <boost/asio.hpp>
 #include <system_error>
 #include <functional>
+#include "MagnetMetadata.h"
 
 class DHTClient
 {
@@ -28,7 +29,7 @@ public:
         \param port The port to use for the torrent
         \param nodes The list of DHT nodes for the torrent
     */
-    DHTClient(const std::string &infoHash, uint16_t port, const std::vector<std::string> &nodes);
+    DHTClient(const std::string &infoHash, uint16_t port);
 
     /*!
         \brief Discover peers for the torrent
@@ -69,10 +70,11 @@ private:
     char responseBuffer[1024];               //!> Buffer to store the response from the DHT node
     std::string infoHash;                    //!> The info hash of the torrent
     uint16_t port;                           //!> The port to use for the torrent
-    std::vector<std::string> nodes;          //!> The list of DHT nodes for the torrent
     boost::asio::io_context io_context;      //!> The I/O context
     boost::asio::ip::udp::socket socket;     //!> The UDP socket
     boost::asio::ip::udp::endpoint endpoint; //!> The endpoint for the DHT node
+    std::unique_ptr<MagnetMetadata> metadata; //!> The metadata of the torrent
+    std::vector<std::string> nodes;          //!> The list of DHT nodes for the torrent
 };
 
 #endif

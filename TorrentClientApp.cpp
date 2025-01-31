@@ -1,3 +1,15 @@
+/*
+ * File: c:\Users\tonyw\Desktop\New folder (2)\TorrentClientApp.cpp
+ * Project: c:\Users\tonyw\Desktop\New folder (2)
+ * Created Date: Wednesday January 29th 2025
+ * Author: Tony Wiedman
+ * -----
+ * Last Modified: Thu January 30th 2025 9:03:20 
+ * Modified By: Tony Wiedman
+ * -----
+ * Copyright (c) 2025 MolexWorks
+ */
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -36,31 +48,26 @@ void processMagnetLink(const std::string &magnetLink)
         MagnetParser parser(magnetLink);
         MagnetMetadata metadata = parser.parse();
 
-        std::cout << "Info Hash: " << metadata.getInfoHash() << std::endl;
-        std::cout << "Piece Size: " << metadata.getPieceSize() << std::endl;
         std::cout << "Display Name: " << metadata.getDisplayName() << std::endl;
 
-        std::cout << "Trackers:" << std::endl;
+        std::cout << "Info Hash: " << metadata.getInfoHash() << std::endl;
+        std::cout << "Trackers: " << std::endl;
         for (const auto &tracker : metadata.getTrackers())
         {
-            std::cout << tracker << std::endl;
+            std::cout << "  " << tracker << std::endl;
         }
 
-        std::cout << "Piece Hashes:" << std::endl;
+        DHTClient dhtClient(metadata.getInfoHash(), 6881);
+        dhtClient.discoverPeers();
+
+        std::cout << "Piece Hashes: " << std::endl;
+
         for (const auto &pieceHash : metadata.getPieceHashes())
         {
-            std::cout << pieceHash << std::endl;
+            std::cout << "  " << pieceHash << std::endl;
         }
 
-        std::cout << "DHT Nodes:" << std::endl;
-        std::vector<std::string> nodeStrings;
-        for (const auto &node : metadata.getNodes())
-        {
-            nodeStrings.push_back(node.ip + ":" + std::to_string(node.port));
-        }
-
-        DHTClient dhtClient(metadata.getInfoHash(), 6881, nodeStrings);
-        dhtClient.discoverPeers();
+        std::cout << "Piece Size: " << metadata.getPieceSize() << " bytes" << std::endl;
     }
     catch (const std::invalid_argument &ex)
     {

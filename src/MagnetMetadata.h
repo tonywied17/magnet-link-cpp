@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 8:16:18 
+ * Last Modified: Thu January 30th 2025 9:09:29 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -82,6 +82,10 @@ public:
         \return The DHT port.
     */
     uint32_t getPort() const;
+
+    void setPieceHashes(const std::vector<std::string> &pieceHashes);
+
+    void setNodes(const std::vector<DHTNode> &nodes);
 
 private:
     std::string infoHash;                 //!> SHA-1 hash

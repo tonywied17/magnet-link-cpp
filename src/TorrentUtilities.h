@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 7:45:11 
+ * Last Modified: Thu January 30th 2025 9:09:22 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -64,6 +64,13 @@ public:
         \return The decoded string.
     */
     static std::string decodeBencodedString(const std::string &data, size_t &index);
+
+    /*!
+        \brief Converts a dictionary to a string.
+        \param data The dictionary to convert.
+        \return The string representation of the dictionary.
+    */
+    static std::string toString(const std::unordered_map<std::string, std::string> &data);
 };
 
 #endif

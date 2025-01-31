@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 8:20:15 
+ * Last Modified: Thu January 30th 2025 9:08:18 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -17,6 +17,7 @@
 #include <boost/asio.hpp>
 #include <functional>
 #include "TorrentUtilities.h"
+#include "MagnetMetadata.h"
 
 /*!
     \brief DHTClient constructor
@@ -24,8 +25,8 @@
     \param port The port to use for the torrent
     \param nodes The list of DHT nodes for the torrent
 */
-DHTClient::DHTClient(const std::string &infoHash, uint16_t port, const std::vector<std::string> &nodes)
-    : infoHash(infoHash), port(port), nodes(nodes),
+DHTClient::DHTClient(const std::string &infoHash, uint16_t port)
+    : infoHash(infoHash), port(port),
       socket(io_context, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), port)) {}
 
 /*!
@@ -34,11 +35,11 @@ DHTClient::DHTClient(const std::string &infoHash, uint16_t port, const std::vect
 */
 void DHTClient::discoverPeers()
 {
-    if (!nodes.empty())
+    if (metadata && !metadata->getNodes().empty())
     {
-        for (const auto &node : nodes)
+        for (const auto &node : metadata->getNodes())
         {
-            sendDHTRequest(node, infoHash);
+            sendDHTRequest(node.ip, infoHash);
         }
     }
     else
@@ -121,20 +122,44 @@ void DHTClient::processDHTResponse(const std::string &response)
     try
     {
         auto decodedData = TorrentUtilities::decodeBencodedData(response, index);
+
+        std::cout << "Decoded DHT response: " << TorrentUtilities::toString(decodedData) << std::endl;
+
         if (decodedData.find("nodes") != decodedData.end())
         {
             std::string nodesData = decodedData["nodes"];
-
             std::vector<std::string> peers = extractPeers(nodesData);
+
+            metadata->setNodes(std::vector<DHTNode>());
+            std::cout << "Updated existing MagnetMetadata object with new DHT nodes." << std::endl;
 
             for (const auto &peer : peers)
             {
                 std::cout << "Found peer: " << peer << std::endl;
             }
         }
+
+        if (decodedData.find("pieces") != decodedData.end())
+        {
+            std::string piecesData = decodedData["pieces"];
+            std::vector<std::string> pieceHashes;
+
+            for (size_t i = 0; i < piecesData.size(); i += 20)
+            {
+                pieceHashes.push_back(piecesData.substr(i, 20));
+            }
+
+            metadata->setPieceHashes(pieceHashes);
+            std::cout << "Updated existing MagnetMetadata object with new piece hashes." << std::endl;
+
+            if (metadata->getPieceSize() > 0)
+            {
+                std::cout << "Torrent is complete." << std::endl;
+            }
+        }
         else
         {
-            std::cerr << "No nodes found in the DHT response." << std::endl;
+            std::cerr << "No pieces found in the DHT response." << std::endl;
         }
     }
     catch (const std::exception &e)

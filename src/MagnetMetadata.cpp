@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 8:17:45 
+ * Last Modified: Thu January 30th 2025 9:10:49 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -64,4 +64,22 @@ const std::vector<DHTNode> &MagnetMetadata::getNodes() const
 uint32_t MagnetMetadata::getPort() const
 {
     return port;
+}
+
+/*!
+    \brief Sets the piece hashes for the torrent
+    \param pieceHashes The list of piece hashes
+*/
+void MagnetMetadata::setPieceHashes(const std::vector<std::string>& pieceHashes)
+{
+    this->pieceHashes = pieceHashes;
+}
+
+/*!
+    \brief Sets the DHT nodes for the torrent
+    \param nodes The list of DHT nodes
+*/
+void MagnetMetadata::setNodes(const std::vector<DHTNode>& nodes)
+{
+    this->nodes = nodes;
 }

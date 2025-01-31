@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 8:14:10 
+ * Last Modified: Thu January 30th 2025 9:09:17 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -157,4 +157,21 @@ std::string TorrentUtilities::decodeBencodedString(const std::string &data, size
     index += length;
 
     return decodedString;
+}
+
+/*!
+    \brief Converts a dictionary to a string.
+    \param data The dictionary to convert.
+    \return The string representation of the dictionary.
+*/
+std::string TorrentUtilities::toString(const std::unordered_map<std::string, std::string> &data)
+{
+    std::ostringstream oss;
+    oss << "{";
+    for (const auto &pair : data)
+    {
+        oss << pair.first << ": " << pair.second << ", ";
+    }
+    oss << "}";
+    return oss.str();
 }

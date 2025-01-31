@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 8:15:12 
+ * Last Modified: Thu January 30th 2025 9:12:30 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -16,8 +16,16 @@
 #include <cstdint>
 #include <algorithm>
 
+/*!
+    \brief MagnetParser constructor
+    \param magnetLink The magnet link to parse
+*/
 MagnetParser::MagnetParser(const std::string &magnetLink) : magnetLink(magnetLink) {}
 
+/*!
+    \brief Parse the magnet link
+    \return The metadata extracted from the magnet link
+*/
 MagnetMetadata MagnetParser::parse()
 {
     std::string infoHash;
@@ -56,15 +64,15 @@ MagnetMetadata MagnetParser::parse()
         }
         else if (key == "p")
         {
-            pieceHashes.push_back(value); //!> Extract piece hashes
+            pieceHashes.push_back(value); //!> Piece hashes
         }
         else if (key == "sz")
         {
-            pieceSize = std::stoi(value); //!> Extract piece size
+            pieceSize = std::stoi(value); //!> Piece size
         }
         else if (key == "dn")
         {
-            displayName = value; //!> Display name (torrent name)
+            displayName = value; //!> Display name
         }
         else if (key == "node")
         {
@@ -73,13 +81,12 @@ MagnetMetadata MagnetParser::parse()
             {
                 std::string ip = value.substr(0, colonPos);
                 uint16_t nodePort = std::stoi(value.substr(colonPos + 1));
-                nodes.emplace_back(ip, nodePort); 
+                nodes.emplace_back(ip, nodePort);
             }
         }
-
         else if (key == "port")
         {
-            port = std::stoi(value); //!> Override port if specified
+            port = std::stoi(value);
         }
     }
 
