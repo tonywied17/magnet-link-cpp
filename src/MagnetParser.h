@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 4:09:01 
+ * Last Modified: Thu January 30th 2025 8:15:21 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -28,7 +28,7 @@ public:
 
     /*!
         \brief Parses the magnet link and returns the metadata.
-        \return The metadata of the torrent.
+        \return The metadata of the torrent, including DHT-specific fields.
     */
     MagnetMetadata parse();
 

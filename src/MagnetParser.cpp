@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 4:09:07 
+ * Last Modified: Thu January 30th 2025 8:15:12 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -16,22 +16,17 @@
 #include <cstdint>
 #include <algorithm>
 
-/*!
-    \brief Creates a MagnetParser object with the given magnet link.
-    \param magnetLink The magnet link to parse.
-*/
 MagnetParser::MagnetParser(const std::string &magnetLink) : magnetLink(magnetLink) {}
 
-/*!
-    \brief Parses the magnet link and returns the metadata.
-    \return The metadata of the torrent.
-*/
 MagnetMetadata MagnetParser::parse()
 {
     std::string infoHash;
     std::vector<std::string> trackers;
     std::vector<std::string> pieceHashes;
     uint32_t pieceSize = 0;
+    std::string displayName;
+    std::vector<DHTNode> nodes;
+    uint32_t port = 6881;
 
     if (magnetLink.find("magnet:?") != 0)
     {
@@ -67,6 +62,25 @@ MagnetMetadata MagnetParser::parse()
         {
             pieceSize = std::stoi(value); //!> Extract piece size
         }
+        else if (key == "dn")
+        {
+            displayName = value; //!> Display name (torrent name)
+        }
+        else if (key == "node")
+        {
+            size_t colonPos = value.find(':');
+            if (colonPos != std::string::npos)
+            {
+                std::string ip = value.substr(0, colonPos);
+                uint16_t nodePort = std::stoi(value.substr(colonPos + 1));
+                nodes.emplace_back(ip, nodePort); 
+            }
+        }
+
+        else if (key == "port")
+        {
+            port = std::stoi(value); //!> Override port if specified
+        }
     }
 
     if (infoHash.empty())
@@ -74,5 +88,5 @@ MagnetMetadata MagnetParser::parse()
         throw std::runtime_error("Missing or invalid info hash in magnet link");
     }
 
-    return MagnetMetadata(infoHash, trackers, pieceHashes, pieceSize);
+    return MagnetMetadata(infoHash, trackers, pieceHashes, pieceSize, displayName, nodes, port);
 }

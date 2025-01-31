@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 4:36:35 
+ * Last Modified: Thu January 30th 2025 8:14:10 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -17,140 +17,9 @@
 #include <iostream>
 
 /*!
-    \brief Helper function to decode a bencoded dictionary.
-    \param data The bencoded string.
-    \param index The current parsing index.
-    \return A map representing the decoded dictionary.
-*/
-std::unordered_map<std::string, std::string> TorrentUtilities::decodeBencodedData(const std::string &data, size_t &index)
-{
-    if (data[index] != 'd')
-        throw std::runtime_error("Invalid dictionary format");
-
-    std::unordered_map<std::string, std::string> decoded;
-    index++; // Skip 'd'
-
-    std::cout << "Decoding dictionary..." << std::endl;
-
-    while (index < data.length() && data[index] != 'e')
-    {
-        std::string key = decodeBencodedString(data, index);
-        std::cout << "Decoded Key: " << key << std::endl;
-
-        if (index >= data.length())
-            throw std::runtime_error("Unexpected end of dictionary");
-
-        if (std::isdigit(data[index]))
-        {
-            decoded[key] = decodeBencodedString(data, index);
-            std::cout << "Decoded Value: " << decoded[key] << std::endl;
-        }
-        else if (data[index] == 'd')
-        {
-            decoded[key] = encodeBencodedData(decodeBencodedData(data, index)); //!> Recursively decode dictionary
-            std::cout << "Decoded Dictionary for key: " << key << std::endl;
-        }
-        else if (data[index] == 'l')
-        {
-            decoded[key] = encodeBencodedList(decodeBencodedList(data, index)); //!> Recursively decode list
-            std::cout << "Decoded List for key: " << key << std::endl;
-        }
-        else
-        {
-            throw std::runtime_error("Unsupported bencoded format");
-        }
-    }
-
-    if (index >= data.length() || data[index] != 'e')
-        throw std::runtime_error("Dictionary not properly terminated");
-
-    index++; // Skip 'e'
-    return decoded;
-}
-
-/*!
-    \brief Helper function to decode a bencoded list.
-    \param data The bencoded string.
-    \param index The current parsing index.
-    \return A vector representing the decoded list.
-*/
-std::vector<std::string> TorrentUtilities::decodeBencodedList(const std::string &data, size_t &index)
-{
-    if (data[index] != 'l')
-        throw std::runtime_error("Invalid list format");
-
-    std::vector<std::string> decodedList;
-    index++; //!> Skip 'l'
-
-    while (index < data.length() && data[index] != 'e')
-    {
-        if (std::isdigit(data[index]))
-        {
-            decodedList.push_back(decodeBencodedString(data, index));
-        }
-        else if (data[index] == 'd')
-        {
-            decodedList.push_back(encodeBencodedData(decodeBencodedData(data, index))); //!> decode dictionary
-        }
-        else if (data[index] == 'l')
-        {
-            decodedList.push_back(encodeBencodedList(decodeBencodedList(data, index))); //!> decode list
-        }
-        else
-        {
-            throw std::runtime_error("Invalid bencoded list format");
-        }
-    }
-
-    if (index >= data.length() || data[index] != 'e')
-        throw std::runtime_error("List not properly terminated");
-
-    index++; //!> Skip 'e'
-    return decodedList;
-}
-
-/*!
-    \brief Helper function to decode a bencoded string.
-    \param data The bencoded string.
-    \param index The current parsing index.
-    \return The decoded string.
-*/
-std::string TorrentUtilities::decodeBencodedString(const std::string &data, size_t &index)
-{
-    if (!std::isdigit(data[index]))
-        throw std::runtime_error("Invalid string format");
-
-    size_t colonPos = data.find(':', index);
-    if (colonPos == std::string::npos)
-        throw std::runtime_error("Malformed bencoded string");
-
-    size_t strLen = std::stoul(data.substr(index, colonPos - index));
-    index = colonPos + 1;
-
-    if (index + strLen > data.length())
-        throw std::runtime_error("String length exceeds data size");
-
-    std::string value = data.substr(index, strLen);
-    index += strLen;
-
-    return value;
-}
-
-/*!
-    \brief Decodes top-level bencoded data.
-    \param data The bencoded string.
-    \return A map of the decoded data.
-*/
-std::unordered_map<std::string, std::string> TorrentUtilities::decodeBencodedData(const std::string &data)
-{
-    size_t index = 0;
-    return decodeBencodedData(data, index);
-}
-
-/*!
     \brief Encodes a dictionary into bencoded format.
     \param data The dictionary to encode.
-    \return The bencoded string.
+    \return The bencoded string
 */
 std::string TorrentUtilities::encodeBencodedData(const std::unordered_map<std::string, std::string> &data)
 {
@@ -170,7 +39,7 @@ std::string TorrentUtilities::encodeBencodedData(const std::unordered_map<std::s
 /*!
     \brief Encodes a list into bencoded format.
     \param data The list to encode.
-    \return The bencoded string.
+    \return The bencoded string
 */
 std::string TorrentUtilities::encodeBencodedList(const std::vector<std::string> &data)
 {
@@ -184,4 +53,108 @@ std::string TorrentUtilities::encodeBencodedList(const std::vector<std::string> 
 
     encoded << "e";
     return encoded.str();
+}
+
+/*!
+    \brief URL decodes a given string.
+    \param url The URL-encoded string.
+    \return The decoded string.
+*/
+std::string TorrentUtilities::urlDecode(const std::string &url)
+{
+    std::string decoded;
+    char ch;
+    unsigned int ii;
+    for (size_t i = 0; i < url.length(); ++i)
+    {
+        if (url[i] == '%')
+        {
+            sscanf(url.substr(i + 1, 2).c_str(), "%x", &ii);
+            ch = static_cast<char>(ii);
+            decoded += ch;
+            i += 2;
+        }
+        else if (url[i] == '+')
+        {
+            decoded += ' ';
+        }
+        else
+        {
+            decoded += url[i];
+        }
+    }
+    return decoded;
+}
+
+/*!
+    \brief Helper function to decode a bencoded dictionary.
+    \param data The bencoded string.
+    \param index The current parsing index.
+    \return A map representing the decoded dictionary.
+*/
+std::unordered_map<std::string, std::string> TorrentUtilities::decodeBencodedData(const std::string &data, size_t &index)
+{
+    std::unordered_map<std::string, std::string> decodedData;
+
+    if (data[index] != 'd')
+        throw std::invalid_argument("Expected 'd' for dictionary start");
+    index++;
+
+    while (data[index] != 'e')
+    {
+        std::string key = decodeBencodedString(data, index);
+
+        std::string value = decodeBencodedString(data, index);
+
+        decodedData[key] = value;
+    }
+
+    index++;
+
+    return decodedData;
+}
+
+/*!
+    \brief Helper function to decode a bencoded list.
+    \param data The bencoded string.
+    \param index The current parsing index.
+    \return A vector representing the decoded list.
+*/
+std::vector<std::string> TorrentUtilities::decodeBencodedList(const std::string &data, size_t &index)
+{
+    std::vector<std::string> decodedList;
+
+    if (data[index] != 'l')
+        throw std::invalid_argument("Expected 'l' for list start");
+    index++;
+
+    while (data[index] != 'e')
+    {
+        decodedList.push_back(decodeBencodedString(data, index));
+    }
+
+    index++;
+
+    return decodedList;
+}
+
+/*!
+    \brief Helper function to decode a bencoded string.
+    \param data The bencoded string.
+    \param index The current parsing index.
+    \return The decoded string.
+*/
+std::string TorrentUtilities::decodeBencodedString(const std::string &data, size_t &index)
+{
+    size_t lenEnd = data.find(':', index);
+    if (lenEnd == std::string::npos)
+        throw std::invalid_argument("Invalid bencoded string length format");
+
+    int length = std::stoi(data.substr(index, lenEnd - index));
+    index = lenEnd + 1;
+
+    std::string decodedString = data.substr(index, length);
+    index += length;
+
+    return decodedString;
 }

@@ -3,9 +3,6 @@ CXX = g++
 SOURCES = \
     TorrentClientApp.cpp \
     src/DHTClient.cpp \
-    src/PeerDiscovery.cpp \
-    src/PeerConnection.cpp \
-    src/DownloadTorrent.cpp \
     src/TorrentUtilities.cpp \
     src/MagnetParser.cpp \
     src/MagnetMetadata.cpp

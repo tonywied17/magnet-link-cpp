@@ -4,59 +4,75 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 4:37:05 
+ * Last Modified: Thu January 30th 2025 8:19:27 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
  */
 
-#ifndef DHT_CLIENT_H
-#define DHT_CLIENT_H
+#ifndef DHTCLIENT_H
+#define DHTCLIENT_H
 
 #include <string>
 #include <vector>
-#include <array>
-#include <cstdint>
+#include <boost/asio.hpp>
+#include <system_error>
+#include <functional>
 
 class DHTClient
 {
 public:
     /*!
-        \brief Constructor for DHTClient.
-        \param infoHash The info hash of the torrent file.
+        \brief DHTClient constructor
+        \param infoHash The info hash of the torrent
+        \param port The port to use for the torrent
+        \param nodes The list of DHT nodes for the torrent
     */
-    explicit DHTClient(const std::string &infoHash);
+    DHTClient(const std::string &infoHash, uint16_t port, const std::vector<std::string> &nodes);
 
     /*!
-        \brief Destructor for DHTClient.
+        \brief Discover peers for the torrent
+        \param callback The callback to call when peers are discovered
     */
-    ~DHTClient();
-
-    /*!
-        \brief Get a list of peers for the torrent file.
-        \return A vector of strings containing peer information.
-    */
-    std::vector<std::string> getPeers();
-
-    /*!
-        \brief Get a list of peers for the torrent file from multiple bootstrap nodes.
-        \return A vector of strings containing peer information.
-    */
-    std::string buildGetPeersQuery();
-
-    /*!
-        \brief Fetch peers from a specific DHT node with a custom query.
-        \param node The DHT node address.
-        \param query The get_peers query to send to the node.
-        \return A vector of strings containing peer information.
-    */
-    std::vector<std::string> getPeersFromNode(const std::string &node, const std::string &query);
+    void discoverPeers();
 
 private:
-    std::string infoHash;                                                //!> The info hash of the torrent file.
-    int createSocket();                                                  //!> Creates a UDP socket for DHT communication.
-    std::vector<std::string> parseResponse(const std::string &response); //!> Parses DHT response to extract peer info.
-    std::array<uint8_t, 20> generateNodeID();                            //!> Generates a random 20-byte node ID
+    /*!
+        \brief Send a request to a DHT node
+        \param node The DHT node to send the request to
+        \param infoHash The info hash of the torrent
+    */
+    void sendDHTRequest(const std::string &node, const std::string &infoHash);
+
+    /*!
+        \brief Process the response from a DHT node
+        \param response The response from the DHT node
+    */
+    void processDHTResponse(const std::string &response);
+
+    /*!
+        \brief Handle peer discovery
+        \param ec The error code
+        \param bytes_transferred The number of bytes transferred
+        \param endpoint The endpoint of the DHT node
+    */
+    void handlePeerDiscovery(const boost::system::error_code &ec, size_t bytes_transferred,
+                             const boost::asio::ip::udp::endpoint &endpoint);
+
+    /*!
+        \brief Extract the peers from the response
+        \param nodesData The response from the DHT node
+        \return The list of peers
+    */
+    std::vector<std::string> extractPeers(const std::string &nodesData);
+
+    char responseBuffer[1024];               //!> Buffer to store the response from the DHT node
+    std::string infoHash;                    //!> The info hash of the torrent
+    uint16_t port;                           //!> The port to use for the torrent
+    std::vector<std::string> nodes;          //!> The list of DHT nodes for the torrent
+    boost::asio::io_context io_context;      //!> The I/O context
+    boost::asio::ip::udp::socket socket;     //!> The UDP socket
+    boost::asio::ip::udp::endpoint endpoint; //!> The endpoint for the DHT node
 };
 
 #endif

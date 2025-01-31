@@ -4,7 +4,7 @@
  * Created Date: Wednesday January 29th 2025
  * Author: Tony Wiedman
  * -----
- * Last Modified: Thu January 30th 2025 4:36:43 
+ * Last Modified: Thu January 30th 2025 7:45:11 
  * Modified By: Tony Wiedman
  * -----
  * Copyright (c) 2025 MolexWorks
@@ -21,13 +21,6 @@ class TorrentUtilities
 {
 public:
     /*!
-        \brief Decodes top-level bencoded data.
-        \param data The bencoded data to decode.
-        \return A map of the decoded data.
-    */
-    static std::unordered_map<std::string, std::string> decodeBencodedData(const std::string &data);
-
-    /*!
         \brief Encodes a dictionary into bencoded format.
         \param data The dictionary to encode.
         \return The bencoded string.
@@ -40,6 +33,13 @@ public:
         \return The bencoded string.
     */
     static std::string encodeBencodedList(const std::vector<std::string> &data);
+
+    /*!
+        \brief URL decodes a given string.
+        \param url The URL-encoded string.
+        \return The decoded string.
+    */
+    static std::string urlDecode(const std::string &url);
 
     /*!
         \brief Helper function to decode a bencoded dictionary.
